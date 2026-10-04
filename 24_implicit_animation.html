@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Implicit Differentiation — 3x² − 2y + 4xy = 6</title>
+<style>
+  :root {
+    --x: #1d4ed8;        /* blue  — x-terms */
+    --y: #c2410c;        /* orange — y-terms */
+    --yp: #7c3aed;       /* purple — y′ terms (what we solve for) */
+    --ans: #15803d;      /* green — final answer */
+    --bad: #dc2626;      /* red — product-rule emphasis */
+    --ink: #1c1917;
+    --hl: #fde047;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #stage { position: fixed; inset: 0 0 64px 0; }
+  .scene {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+    padding: 4vh 6vw;
+    text-align: center;
+  }
+  .scene.active { display: flex; }
+  .scene.dense { gap: .5em; }
+  .scene.dense .math { font-size: clamp(17px, 2.5vw, 29px); line-height: 1.35; }
+  .scene.dense .big { font-size: clamp(20px, 3vw, 36px); }
+
+  .scene .rv { opacity: 0; }
+  .scene.active .rv {
+    animation: rise .55s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .math { font-size: clamp(22px, 3.4vw, 40px); line-height: 1.5; }
+  .math i { font-style: italic; }
+  .big { font-size: clamp(26px, 4.2vw, 52px); }
+  .c-x  { color: var(--x); }
+  .c-y  { color: var(--y); }
+  .c-yp { color: var(--yp); }
+  .c-ans{ color: var(--ans); }
+  .c-bad{ color: var(--bad); }
+
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+    margin: 0 .12em;
+    line-height: 1.15;
+  }
+  .frac .num { border-bottom: 2px solid currentColor; padding: 0 .25em .05em; }
+  .frac .den { padding: .05em .25em 0; }
+  sup { font-size: .62em; }
+
+  .hl {
+    background-image: linear-gradient(var(--hl), var(--hl));
+    background-repeat: no-repeat;
+    background-size: 0% 88%;
+    background-position: 0 60%;
+    border-radius: 4px;
+    padding: 0 .1em;
+  }
+  .scene.active .hl { animation: sweep .7s ease-out both; animation-delay: var(--d, 0s); }
+  @keyframes sweep { from { background-size: 0% 88%; } to { background-size: 100% 88%; } }
+
+  .step {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: clamp(15px, 1.8vw, 22px);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #78716c;
+  }
+  .tag {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: .55em;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .15em .5em;
+    border-radius: 6px;
+    vertical-align: middle;
+  }
+  .tag-x  { background: #dbeafe; color: var(--x); }
+  .tag-y  { background: #ffedd5; color: var(--y); }
+  .tag-yp { background: #ede9fe; color: var(--yp); }
+  .note { font-size: clamp(14px, 1.6vw, 19px); color: #57534e; font-style: italic; }
+
+  /* term-by-term rows */
+  .trow {
+    display: flex; align-items: center; gap: .6em;
+    font-size: clamp(19px, 2.8vw, 32px);
+  }
+  .trow .lhs { min-width: 5.5em; text-align: right; }
+  .trow .arrow { color: #78716c; }
+
+  /* the y′ collector box */
+  .collect {
+    display: inline-block;
+    border: 3px solid var(--yp);
+    border-radius: 14px;
+    padding: .25em .8em;
+    background: #f5f3ff;
+  }
+
+  .answer-box {
+    display: inline-block;
+    border: 3px solid var(--ans);
+    border-radius: 14px;
+    padding: .5em 1.1em;
+    background: #f0fdf4;
+  }
+
+  /* paused = static view: everything visible, no animation */
+  body.paused .scene.active .rv { animation: none; opacity: 1; }
+  body.paused .scene.active .hl { animation: none; background-size: 100% 88%; }
+
+  /* controls */
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 64px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    background: #fafaf9;
+    border-top: 1px solid #e7e5e4;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+  }
+  #bar button {
+    font: inherit; font-size: 17px;
+    border: 1px solid #d6d3d1; border-radius: 8px;
+    background: #fff; color: var(--ink);
+    padding: 7px 14px; cursor: pointer;
+  }
+  #bar button:hover { background: #f5f5f4; }
+  #dots { display: flex; gap: 8px; margin-left: auto; }
+  #dots .dot { width: 11px; height: 11px; border-radius: 50%; background: #d6d3d1; cursor: pointer; }
+  #dots .dot.on { background: var(--yp); }
+  #label { font-size: 13px; color: #78716c; min-width: 9.5em; }
+  #progress { position: fixed; top: 0; left: 0; height: 4px; width: 0%; background: var(--yp); transition: width .2s linear; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage">
+
+  <!-- ============ SCENE 1 — THE QUESTION ============ -->
+  <section class="scene" data-dur="9000">
+    <div class="step rv" style="--d:.1s">The question</div>
+    <div class="math big rv" style="--d:.5s">
+      Let&nbsp; <span class="c-x">3<i>x</i><sup>2</sup></span> − <span class="c-y">2<i>y</i></span> + <span class="c-y">4<i>xy</i></span> = 6.
+      &nbsp;Find&nbsp; <span class="frac"><span class="num"><i>dy</i></span><span class="den"><i>dx</i></span></span>.
+    </div>
+    <div class="note rv" style="--d:1.6s">The equation mixes x and y — and y is secretly a function of x.</div>
+  </section>
+
+  <!-- ============ SCENE 2 — THE KEY IDEA ============ -->
+  <section class="scene" data-dur="11000">
+    <div class="step rv" style="--d:.1s">The key idea</div>
+    <div class="math big rv" style="--d:.6s">
+      Differentiate <span class="hl" style="--d:1.0s">both sides</span> with respect to <i>x</i>.
+    </div>
+    <div class="math big rv" style="--d:2.2s">
+      <span class="c-yp"><span class="frac"><span class="num"><i>d</i></span><span class="den"><i>dx</i></span></span>[<i>y</i>] = <i>y</i>′</span>
+      &nbsp;&nbsp;<span class="note">chain rule: y depends on x</span>
+    </div>
+    <div class="math rv" style="--d:3.8s">
+      <span class="c-yp">every <i>y</i> you differentiate drags a <i>y</i>′ along with it.</span>
+    </div>
+    <div class="note rv" style="--d:5.0s">That's the whole trick — and it's why y′ will show up more than once.</div>
+  </section>
+
+  <!-- ============ SCENE 3 — TERM BY TERM ============ -->
+  <section class="scene dense" data-dur="15000">
+    <div class="step rv" style="--d:.1s">Step 1 — Differentiate term by term</div>
+    <div class="trow rv" style="--d:.6s">
+      <span class="lhs c-x">3<i>x</i><sup>2</sup></span> <span class="arrow">→</span> <span class="c-x">6<i>x</i></span>
+    </div>
+    <div class="trow rv" style="--d:1.6s">
+      <span class="lhs c-y">−2<i>y</i></span> <span class="arrow">→</span> <span class="c-y">−2</span><span class="c-yp"><i>y</i>′</span>
+    </div>
+    <div class="trow rv" style="--d:2.6s">
+      <span class="lhs c-y">4<i>xy</i></span> <span class="arrow">→</span>
+      <span class="c-bad"><span class="hl" style="--d:3.0s">product rule!</span></span>
+      &nbsp;<span class="c-y">4<i>y</i></span> + <span class="c-y">4<i>x</i></span><span class="c-yp"><i>y</i>′</span>
+    </div>
+    <div class="trow rv" style="--d:4.4s">
+      <span class="lhs">6</span> <span class="arrow">→</span> <span>0</span>
+    </div>
+    <div class="math big rv" style="--d:5.6s">
+      <span class="c-x">6<i>x</i></span> <span class="c-y">− 2</span><span class="c-yp"><i>y</i>′</span> <span class="c-y">+ 4<i>y</i></span> <span class="c-y">+ 4<i>x</i></span><span class="c-yp"><i>y</i>′</span> = 0
+    </div>
+    <div class="note rv" style="--d:7.0s">4xy needs the product rule: (4x)′·y + 4x·y′ = 4y + 4xy′.</div>
+  </section>
+
+  <!-- ============ SCENE 4 — COLLECT THE y′ TERMS ============ -->
+  <section class="scene dense" data-dur="13000">
+    <div class="step rv" style="--d:.1s">Step 2 — Collect the <i>y</i>′ terms</div>
+    <div class="math rv" style="--d:.6s">
+      <span class="c-x">6<i>x</i></span> <span class="c-yp"><span class="hl" style="--d:1.0s">− 2<i>y</i>′</span></span> <span class="c-y">+ 4<i>y</i></span> <span class="c-yp"><span class="hl" style="--d:1.8s">+ 4<i>x</i><i>y</i>′</span></span> = 0
+    </div>
+    <div class="math rv" style="--d:3.0s">
+      <span class="c-yp"><i>y</i>′ appears <b>twice</b></span> — gather them on one side:
+    </div>
+    <div class="math big rv" style="--d:4.2s">
+      <span class="collect c-yp"><i>y</i>′(4<i>x</i> − 2) = −6<i>x</i> − 4<i>y</i></span>
+    </div>
+    <div class="note rv" style="--d:5.6s">Move the non-y′ terms right, then factor y′ out of what's left.</div>
+  </section>
+
+  <!-- ============ SCENE 5 — SOLVE & TIDY ============ -->
+  <section class="scene dense" data-dur="13000">
+    <div class="step rv" style="--d:.1s">Step 3 — Solve, then tidy up</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-yp"><i>y</i>′ = <span class="frac"><span class="num">−6<i>x</i> − 4<i>y</i></span><span class="den">4<i>x</i> − 2</span></span></span>
+      &nbsp;=&nbsp;
+      <span class="hl" style="--d:1.6s"><span class="frac"><span class="num">6<i>x</i> + 4<i>y</i></span><span class="den">2 − 4<i>x</i></span></span></span>
+    </div>
+    <div class="math rv" style="--d:3.0s">
+      divide top and bottom by <span class="hl" style="--d:3.4s">2</span>:
+    </div>
+    <div class="math big rv" style="--d:4.4s">
+      <span class="c-ans"><i>y</i>′ = <span class="frac"><span class="num">3<i>x</i> + 2<i>y</i></span><span class="den">1 − 2<i>x</i></span></span></span>
+    </div>
+    <div class="note rv" style="--d:5.8s">Flip both signs, then divide by 2 — the tidy form.</div>
+  </section>
+
+  <!-- ============ SCENE 6 — THE ANSWER ============ -->
+  <section class="scene" data-dur="9000">
+    <div class="step rv" style="--d:.1s">The answer</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="answer-box c-ans"><span class="frac"><span class="num"><i>dy</i></span><span class="den"><i>dx</i></span></span> = <span class="frac"><span class="num">3<i>x</i> + 2<i>y</i></span><span class="den">1 − 2<i>x</i></span></span></span>
+    </div>
+    <div class="note rv" style="--d:2.0s">differentiate&nbsp;→&nbsp;collect <i>y</i>′&nbsp;→&nbsp;factor&nbsp;→&nbsp;divide</div>
+  </section>
+
+</div>
+
+<div id="bar">
+  <button id="prev" title="Previous scene (←)">⏮</button>
+  <button id="play" title="Play / pause (space)">⏸</button>
+  <button id="next" title="Next scene (→)">⏭</button>
+  <span id="label">1 / 6</span>
+  <div id="dots"></div>
+</div>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll(".scene")];
+  const durs   = scenes.map(s => +s.dataset.dur);
+  const dotsEl = document.getElementById("dots");
+  const label  = document.getElementById("label");
+  const prog   = document.getElementById("progress");
+  const playBtn= document.getElementById("play");
+
+  let cur = -1, playing = true, timer = null, t0 = 0, raf = null;
+
+  scenes.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.addEventListener("click", () => show(i, true));
+    dotsEl.appendChild(d);
+  });
+  const dots = [...dotsEl.children];
+
+  function show(i, keepPlay) {
+    clearTimeout(timer); cancelAnimationFrame(raf);
+    cur = (i + scenes.length) % scenes.length;
+    scenes.forEach((s, k) => {
+      s.classList.remove("active");
+      if (k === cur) { void s.offsetWidth; s.classList.add("active"); } // restart animations
+    });
+    dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+    label.textContent = (cur + 1) + " / " + scenes.length;
+    prog.style.width = "0%";
+    if (playing) arm(0);
+  }
+
+  function arm(startDelay) {
+    t0 = performance.now() - startDelay;
+    tick();
+    timer = setTimeout(() => show(cur + 1), durs[cur] - startDelay);
+  }
+  function tick() {
+    if (!playing) return;
+    const p = Math.min(1, (performance.now() - t0) / durs[cur]);
+    prog.style.width = (p * 100).toFixed(1) + "%";
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setPlaying(p) {
+    playing = p;
+    playBtn.textContent = p ? "⏸" : "▶";
+    document.body.classList.toggle("paused", !p);
+    if (p) { arm(performance.now() - t0); }
+    else   { clearTimeout(timer); cancelAnimationFrame(raf); }
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(cur + 1, true));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1, true));
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(cur + 1, true);
+    else if (e.key === "ArrowLeft") show(cur - 1, true);
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  const params = new URLSearchParams(location.search);
+  const start = Math.min(Math.max(parseInt(params.get("scene") || "1", 10) || 1, 1), scenes.length) - 1;
+  if (params.has("scene")) { setPlaying(false); show(start); } else { show(0); }
+})();
+</script>
+</body>
+</html>

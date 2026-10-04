@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second Derivative from Graphs — y″(2)</title>
+<style>
+  :root {
+    --f: #1d4ed8;        /* blue  — f */
+    --gp: #0f766e;       /* teal  — g′ */
+    --hi: #c2410c;       /* orange — highlighted segment */
+    --rule: #7c3aed;     /* purple — the rule */
+    --ans: #15803d;      /* green — final answer */
+    --bad: #dc2626;      /* red — emphasis */
+    --ink: #1c1917;
+    --hl: #fde047;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #stage { position: fixed; inset: 0 0 64px 0; }
+  .scene {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+    padding: 4vh 6vw;
+    text-align: center;
+  }
+  .scene.active { display: flex; }
+  .scene.dense { gap: .5em; }
+  .scene.dense .math { font-size: clamp(17px, 2.5vw, 29px); line-height: 1.35; }
+  .scene.dense .big { font-size: clamp(20px, 3vw, 36px); }
+
+  .scene .rv { opacity: 0; }
+  .scene.active .rv {
+    animation: rise .55s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .math { font-size: clamp(22px, 3.4vw, 40px); line-height: 1.5; }
+  .math i { font-style: italic; }
+  .big { font-size: clamp(26px, 4.2vw, 52px); }
+  .c-f  { color: var(--f); }
+  .c-gp { color: var(--gp); }
+  .c-hi { color: var(--hi); }
+  .c-rule { color: var(--rule); }
+  .c-ans{ color: var(--ans); }
+  .c-bad{ color: var(--bad); }
+
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+    margin: 0 .12em;
+    line-height: 1.15;
+  }
+  .frac .num { border-bottom: 2px solid currentColor; padding: 0 .25em .05em; }
+  .frac .den { padding: .05em .25em 0; }
+  sup { font-size: .62em; }
+
+  .hl {
+    background-image: linear-gradient(var(--hl), var(--hl));
+    background-repeat: no-repeat;
+    background-size: 0% 88%;
+    background-position: 0 60%;
+    border-radius: 4px;
+    padding: 0 .1em;
+  }
+  .scene.active .hl { animation: sweep .7s ease-out both; animation-delay: var(--d, 0s); }
+  @keyframes sweep { from { background-size: 0% 88%; } to { background-size: 100% 88%; } }
+
+  .step {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: clamp(15px, 1.8vw, 22px);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #78716c;
+  }
+  .note { font-size: clamp(14px, 1.6vw, 19px); color: #57534e; font-style: italic; }
+
+  /* graphs */
+  .graphrow { display: flex; gap: 2.5vw; justify-content: center; align-items: center; flex-wrap: wrap; }
+  svg.graph { width: min(44vw, 520px); height: auto; }
+  svg.graph.solo { width: min(62vw, 560px); }
+  .axis { stroke: #1c1917; stroke-width: 1.5; }
+  .gridlabel { font: 14px Georgia, serif; fill: #57534e; }
+  .svglbl   { font: italic 20px Georgia, serif; }
+  .svglbl-b { font: italic bold 17px Georgia, serif; }
+  .scene.active .draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 1.6s ease-in-out both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  .answer-box {
+    display: inline-block;
+    border: 3px solid var(--ans);
+    border-radius: 14px;
+    padding: .5em 1.1em;
+    background: #f0fdf4;
+  }
+
+  /* paused = static view: everything visible, no animation */
+  body.paused .scene.active .rv { animation: none; opacity: 1; }
+  body.paused .scene.active .hl { animation: none; background-size: 100% 88%; }
+  body.paused .scene.active .draw { animation: none; stroke-dashoffset: 0; }
+
+  /* controls */
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 64px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    background: #fafaf9;
+    border-top: 1px solid #e7e5e4;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+  }
+  #bar button {
+    font: inherit; font-size: 17px;
+    border: 1px solid #d6d3d1; border-radius: 8px;
+    background: #fff; color: var(--ink);
+    padding: 7px 14px; cursor: pointer;
+  }
+  #bar button:hover { background: #f5f5f4; }
+  #dots { display: flex; gap: 8px; margin-left: auto; }
+  #dots .dot { width: 11px; height: 11px; border-radius: 50%; background: #d6d3d1; cursor: pointer; }
+  #dots .dot.on { background: var(--rule); }
+  #label { font-size: 13px; color: #78716c; min-width: 9.5em; }
+  #progress { position: fixed; top: 0; left: 0; height: 4px; width: 0%; background: var(--rule); transition: width .2s linear; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage">
+
+  <!-- ============ SCENE 1 — THE QUESTION ============ -->
+  <section class="scene dense" data-dur="14000">
+    <div class="step rv" style="--d:.1s">The question</div>
+    <div class="graphrow">
+      <!-- f(x) -->
+      <svg class="graph rv" style="--d:.5s" viewBox="0 0 620 400">
+        <line x1="60" y1="314.3" x2="600" y2="314.3" class="axis"/>
+        <line x1="180" y1="20" x2="180" y2="340" class="axis"/>
+        <text x="52"  y="334" class="gridlabel">−3</text>
+        <text x="173" y="334" class="gridlabel">0</text>
+        <text x="293" y="334" class="gridlabel">3</text>
+        <text x="413" y="334" class="gridlabel">6</text>
+        <text x="573" y="334" class="gridlabel">10</text>
+        <text x="155" y="46"  class="gridlabel">6</text>
+        <text x="155" y="137" class="gridlabel">4</text>
+        <text x="155" y="229" class="gridlabel">2</text>
+        <text x="155" y="320" class="gridlabel">0</text>
+        <polyline points="60,131.4 220,222.9 300,40 420,177.1 580,177.1" fill="none" stroke="#1d4ed8" stroke-width="3.5" pathLength="1" class="draw" style="--d:1.0s"/>
+        <text x="500" y="80" fill="#1d4ed8" class="svglbl rv" style="--d:2.4s">f(x)</text>
+      </svg>
+      <!-- g′(x) -->
+      <svg class="graph rv" style="--d:1.2s" viewBox="0 0 620 400">
+        <line x1="60" y1="222.9" x2="600" y2="222.9" class="axis"/>
+        <line x1="180" y1="20" x2="180" y2="380" class="axis"/>
+        <text x="52"  y="243" class="gridlabel">−3</text>
+        <text x="173" y="243" class="gridlabel">0</text>
+        <text x="293" y="243" class="gridlabel">3</text>
+        <text x="413" y="243" class="gridlabel">6</text>
+        <text x="573" y="243" class="gridlabel">10</text>
+        <text x="155" y="46"  class="gridlabel">4</text>
+        <text x="155" y="92"  class="gridlabel">3</text>
+        <text x="155" y="229" class="gridlabel">0</text>
+        <text x="155" y="320" class="gridlabel">−2</text>
+        <text x="155" y="366" class="gridlabel">−3</text>
+        <path d="M60,222.9 C100,300 150,314.3 180,314.3 C200,314.3 210,270 220,222.9" fill="none" stroke="#0f766e" stroke-width="3.5" pathLength="1" class="draw" style="--d:1.8s"/>
+        <polyline points="220,222.9 340,360" fill="none" stroke="#0f766e" stroke-width="3.5" pathLength="1" class="draw" style="--d:2.6s"/>
+        <polyline points="340,85.7 460,85.7 580,360" fill="none" stroke="#0f766e" stroke-width="3.5" pathLength="1" class="draw" style="--d:3.2s"/>
+        <circle cx="60"  cy="222.9" r="6" fill="#0f766e" class="rv" style="--d:3.8s"/>
+        <circle cx="220" cy="222.9" r="6" fill="#fff" stroke="#0f766e" stroke-width="3" class="rv" style="--d:3.8s"/>
+        <circle cx="340" cy="360"   r="6" fill="#fff" stroke="#0f766e" stroke-width="3" class="rv" style="--d:3.8s"/>
+        <circle cx="340" cy="85.7"  r="6" fill="#0f766e" class="rv" style="--d:3.8s"/>
+        <circle cx="580" cy="360"   r="6" fill="#0f766e" class="rv" style="--d:3.8s"/>
+        <text x="470" y="60" fill="#0f766e" class="svglbl rv" style="--d:4.2s">g′(x)</text>
+      </svg>
+    </div>
+    <div class="math rv" style="--d:4.6s">
+      Let&nbsp; <span class="frac"><span class="num"><i>dy</i></span><span class="den"><i>dx</i></span></span> = <i class="c-f">f</i>(<i>x</i>) <i class="c-gp">g</i>′(<i>x</i>).&nbsp;
+      Find&nbsp; <span class="frac"><span class="num"><i>d</i><sup>2</sup><i>y</i></span><span class="den"><i>dx</i><sup>2</sup></span></span> at <i>x</i> = 2.
+    </div>
+  </section>
+
+  <!-- ============ SCENE 2 — PRODUCT RULE ============ -->
+  <section class="scene" data-dur="12000">
+    <div class="step rv" style="--d:.1s">Step 1 — It's a product, so use the product rule</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-rule"><span class="frac"><span class="num"><i>dy</i></span><span class="den"><i>dx</i></span></span> = <i class="c-f">f</i>(<i>x</i>) · <i class="c-gp">g</i>′(<i>x</i>)</span>
+    </div>
+    <div class="math big rv" style="--d:2.0s">
+      <span class="c-rule"><span class="frac"><span class="num"><i>d</i><sup>2</sup><i>y</i></span><span class="den"><i>dx</i><sup>2</sup></span></span> = <i class="c-f">f</i>′(<i>x</i>)<i class="c-gp">g</i>′(<i>x</i>) + <i class="c-f">f</i>(<i>x</i>)<i class="c-gp">g</i>″(<i>x</i>)</span>
+    </div>
+    <div class="note rv" style="--d:3.4s">y′ = fg′ is a product, so y″ = f′g′ + fg″. Four values to find at x = 2.</div>
+  </section>
+
+  <!-- ============ SCENE 3 — READ f(2) AND f′(2) ============ -->
+  <section class="scene dense" data-dur="15000">
+    <div class="step rv" style="--d:.1s">Step 2 — Read <i>f</i>(2) and <i>f</i>′(2) from the <i>f</i> graph</div>
+    <svg class="graph solo rv" style="--d:.5s" viewBox="0 0 620 400">
+      <line x1="60" y1="314.3" x2="600" y2="314.3" class="axis"/>
+      <line x1="180" y1="20" x2="180" y2="340" class="axis"/>
+      <text x="52"  y="334" class="gridlabel">−3</text>
+      <text x="173" y="334" class="gridlabel">0</text>
+      <text x="293" y="334" class="gridlabel">3</text>
+      <text x="413" y="334" class="gridlabel">6</text>
+      <text x="573" y="334" class="gridlabel">10</text>
+      <text x="155" y="46"  class="gridlabel">6</text>
+      <text x="155" y="137" class="gridlabel">4</text>
+      <text x="155" y="229" class="gridlabel">2</text>
+      <text x="155" y="320" class="gridlabel">0</text>
+      <polyline points="60,131.4 220,222.9" fill="none" stroke="#1d4ed8" stroke-width="3.5"/>
+      <polyline points="300,40 420,177.1 580,177.1" fill="none" stroke="#1d4ed8" stroke-width="3.5"/>
+      <!-- rising segment (1,2) → (3,6), highlighted -->
+      <polyline points="220,222.9 300,40" fill="none" stroke="#c2410c" stroke-width="6" pathLength="1" class="draw" style="--d:1.2s"/>
+      <text x="310" y="230" fill="#c2410c" class="svglbl-b rv" style="--d:3.0s">(1, 2) → (3, 6)</text>
+      <!-- point at x = 2 -->
+      <circle cx="260" cy="131.4" r="7" fill="#15803d" class="rv" style="--d:4.0s"/>
+      <text x="150" y="120" fill="#15803d" class="svglbl-b rv" style="--d:4.2s">x = 2</text>
+    </svg>
+    <div class="math rv" style="--d:5.0s">
+      <i class="c-f">f</i>(2) = <span class="hl" style="--d:5.4s">4</span>&nbsp;&nbsp;&nbsp;
+      <i class="c-f">f</i>′(2) = slope = <span class="frac"><span class="num">6 − 2</span><span class="den">3 − 1</span></span> = <span class="hl" style="--d:6.2s">2</span>
+    </div>
+    <div class="note rv" style="--d:7.2s">f is mid-rise at x = 2 — its peak is at x = 3.</div>
+  </section>
+
+  <!-- ============ SCENE 4 — READ g′(2) AND g″(2) ============ -->
+  <section class="scene dense" data-dur="15000">
+    <div class="step rv" style="--d:.1s">Step 3 — Read <i>g</i>′(2) and <i>g</i>″(2) from the <i>g</i>′ graph</div>
+    <svg class="graph solo rv" style="--d:.5s" viewBox="0 0 620 400">
+      <line x1="60" y1="222.9" x2="600" y2="222.9" class="axis"/>
+      <line x1="180" y1="20" x2="180" y2="380" class="axis"/>
+      <text x="52"  y="243" class="gridlabel">−3</text>
+      <text x="173" y="243" class="gridlabel">0</text>
+      <text x="293" y="243" class="gridlabel">3</text>
+      <text x="413" y="243" class="gridlabel">6</text>
+      <text x="573" y="243" class="gridlabel">10</text>
+      <text x="155" y="46"  class="gridlabel">4</text>
+      <text x="155" y="92"  class="gridlabel">3</text>
+      <text x="155" y="229" class="gridlabel">0</text>
+      <text x="155" y="320" class="gridlabel">−2</text>
+      <text x="155" y="366" class="gridlabel">−3</text>
+      <path d="M60,222.9 C100,300 150,314.3 180,314.3 C200,314.3 210,270 220,222.9" fill="none" stroke="#0f766e" stroke-width="3.5"/>
+      <polyline points="340,85.7 460,85.7 580,360" fill="none" stroke="#0f766e" stroke-width="3.5"/>
+      <!-- descending segment (1,0) → (4,−3), highlighted -->
+      <polyline points="220,222.9 340,360" fill="none" stroke="#c2410c" stroke-width="6" pathLength="1" class="draw" style="--d:1.2s"/>
+      <text x="350" y="330" fill="#c2410c" class="svglbl-b rv" style="--d:3.0s">(1, 0) → (4, −3)</text>
+      <circle cx="60"  cy="222.9" r="6" fill="#0f766e"/>
+      <circle cx="220" cy="222.9" r="6" fill="#fff" stroke="#0f766e" stroke-width="3"/>
+      <circle cx="340" cy="360"   r="6" fill="#fff" stroke="#0f766e" stroke-width="3"/>
+      <circle cx="340" cy="85.7"  r="6" fill="#0f766e"/>
+      <circle cx="580" cy="360"   r="6" fill="#0f766e"/>
+      <!-- point at x = 2 -->
+      <circle cx="260" cy="268.6" r="7" fill="#15803d" class="rv" style="--d:4.0s"/>
+      <text x="150" y="290" fill="#15803d" class="svglbl-b rv" style="--d:4.2s">x = 2</text>
+    </svg>
+    <div class="math rv" style="--d:5.0s">
+      <i class="c-gp">g</i>′(2) = <span class="hl" style="--d:5.4s">−1</span>&nbsp;&nbsp;&nbsp;
+      <i class="c-gp">g</i>″(2) = slope = <span class="frac"><span class="num">−3 − 0</span><span class="den">4 − 1</span></span> = <span class="hl" style="--d:6.2s">−1</span>
+    </div>
+    <div class="note rv" style="--d:7.2s">g′ is mid-descent at x = 2 — its flat part is over x = 4 to 7.</div>
+  </section>
+
+  <!-- ============ SCENE 5 — SUBSTITUTE ============ -->
+  <section class="scene dense" data-dur="13000">
+    <div class="step rv" style="--d:.1s">Step 4 — Substitute into the product rule</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-rule"><span class="frac"><span class="num"><i>d</i><sup>2</sup><i>y</i></span><span class="den"><i>dx</i><sup>2</sup></span></span> = <i class="c-f">f</i>′(2)<i class="c-gp">g</i>′(2) + <i class="c-f">f</i>(2)<i class="c-gp">g</i>″(2)</span>
+    </div>
+    <div class="math big rv" style="--d:2.0s">
+      = <span class="hl" style="--d:2.4s">(2)(−1)</span> + <span class="hl" style="--d:3.2s">(4)(−1)</span>
+      = −2 − 4
+      = <span class="hl" style="--d:4.4s"><span class="c-ans">−6</span></span>
+    </div>
+    <div class="note rv" style="--d:5.6s">f′g′ = (2)(−1) = −2;&nbsp; fg″ = (4)(−1) = −4;&nbsp; sum = −6.</div>
+  </section>
+
+  <!-- ============ SCENE 6 — THE ANSWER ============ -->
+  <section class="scene" data-dur="9000">
+    <div class="step rv" style="--d:.1s">The answer</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="answer-box c-ans"><span class="frac"><span class="num"><i>d</i><sup>2</sup><i>y</i></span><span class="den"><i>dx</i><sup>2</sup></span></span> at <i>x</i> = 2 is −6</span>
+    </div>
+    <div class="note rv" style="--d:2.0s">product rule&nbsp;→&nbsp;read four values&nbsp;→&nbsp;substitute</div>
+  </section>
+
+</div>
+
+<div id="bar">
+  <button id="prev" title="Previous scene (←)">⏮</button>
+  <button id="play" title="Play / pause (space)">⏸</button>
+  <button id="next" title="Next scene (→)">⏭</button>
+  <span id="label">1 / 6</span>
+  <div id="dots"></div>
+</div>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll(".scene")];
+  const durs   = scenes.map(s => +s.dataset.dur);
+  const dotsEl = document.getElementById("dots");
+  const label  = document.getElementById("label");
+  const prog   = document.getElementById("progress");
+  const playBtn= document.getElementById("play");
+
+  let cur = -1, playing = true, timer = null, t0 = 0, raf = null;
+
+  scenes.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.addEventListener("click", () => show(i, true));
+    dotsEl.appendChild(d);
+  });
+  const dots = [...dotsEl.children];
+
+  function show(i, keepPlay) {
+    clearTimeout(timer); cancelAnimationFrame(raf);
+    cur = (i + scenes.length) % scenes.length;
+    scenes.forEach((s, k) => {
+      s.classList.remove("active");
+      if (k === cur) { void s.offsetWidth; s.classList.add("active"); } // restart animations
+    });
+    dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+    label.textContent = (cur + 1) + " / " + scenes.length;
+    prog.style.width = "0%";
+    if (playing) arm(0);
+  }
+
+  function arm(startDelay) {
+    t0 = performance.now() - startDelay;
+    tick();
+    timer = setTimeout(() => show(cur + 1), durs[cur] - startDelay);
+  }
+  function tick() {
+    if (!playing) return;
+    const p = Math.min(1, (performance.now() - t0) / durs[cur]);
+    prog.style.width = (p * 100).toFixed(1) + "%";
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setPlaying(p) {
+    playing = p;
+    playBtn.textContent = p ? "⏸" : "▶";
+    document.body.classList.toggle("paused", !p);
+    if (p) { arm(performance.now() - t0); }
+    else   { clearTimeout(timer); cancelAnimationFrame(raf); }
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(cur + 1, true));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1, true));
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(cur + 1, true);
+    else if (e.key === "ArrowLeft") show(cur - 1, true);
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  const params = new URLSearchParams(location.search);
+  const start = Math.min(Math.max(parseInt(params.get("scene") || "1", 10) || 1, 1), scenes.length) - 1;
+  if (params.has("scene")) { setPlaying(false); show(start); } else { show(0); }
+})();
+</script>
+</body>
+</html>

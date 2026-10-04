@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tangent Line — x² − 3xy + 4y = 8 at (2, −2)</title>
+<style>
+  :root {
+    --x: #1d4ed8;        /* blue  — x-terms */
+    --y: #c2410c;        /* orange — y-terms */
+    --yp: #7c3aed;       /* purple — y′ terms */
+    --ans: #15803d;      /* green — final answer */
+    --bad: #dc2626;      /* red — product-rule emphasis */
+    --ink: #1c1917;
+    --hl: #fde047;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #stage { position: fixed; inset: 0 0 64px 0; }
+  .scene {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+    padding: 4vh 6vw;
+    text-align: center;
+  }
+  .scene.active { display: flex; }
+  .scene.dense { gap: .5em; }
+  .scene.dense .math { font-size: clamp(17px, 2.5vw, 29px); line-height: 1.35; }
+  .scene.dense .big { font-size: clamp(20px, 3vw, 36px); }
+
+  .scene .rv { opacity: 0; }
+  .scene.active .rv {
+    animation: rise .55s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .math { font-size: clamp(22px, 3.4vw, 40px); line-height: 1.5; }
+  .math i { font-style: italic; }
+  .big { font-size: clamp(26px, 4.2vw, 52px); }
+  .c-x  { color: var(--x); }
+  .c-y  { color: var(--y); }
+  .c-yp { color: var(--yp); }
+  .c-ans{ color: var(--ans); }
+  .c-bad{ color: var(--bad); }
+
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+    margin: 0 .12em;
+    line-height: 1.15;
+  }
+  .frac .num { border-bottom: 2px solid currentColor; padding: 0 .25em .05em; }
+  .frac .den { padding: .05em .25em 0; }
+  sup { font-size: .62em; }
+
+  .hl {
+    background-image: linear-gradient(var(--hl), var(--hl));
+    background-repeat: no-repeat;
+    background-size: 0% 88%;
+    background-position: 0 60%;
+    border-radius: 4px;
+    padding: 0 .1em;
+  }
+  .scene.active .hl { animation: sweep .7s ease-out both; animation-delay: var(--d, 0s); }
+  @keyframes sweep { from { background-size: 0% 88%; } to { background-size: 100% 88%; } }
+
+  .step {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: clamp(15px, 1.8vw, 22px);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #78716c;
+  }
+  .tag {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: .55em;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .15em .5em;
+    border-radius: 6px;
+    vertical-align: middle;
+  }
+  .tag-x  { background: #dbeafe; color: var(--x); }
+  .tag-y  { background: #ffedd5; color: var(--y); }
+  .tag-yp { background: #ede9fe; color: var(--yp); }
+  .note { font-size: clamp(14px, 1.6vw, 19px); color: #57534e; font-style: italic; }
+
+  .trow {
+    display: flex; align-items: center; gap: .6em;
+    font-size: clamp(19px, 2.8vw, 32px);
+  }
+  .trow .lhs { min-width: 5.5em; text-align: right; }
+  .trow .arrow { color: #78716c; }
+
+  .collect {
+    display: inline-block;
+    border: 3px solid var(--yp);
+    border-radius: 14px;
+    padding: .25em .8em;
+    background: #f5f3ff;
+  }
+
+  .answer-box {
+    display: inline-block;
+    border: 3px solid var(--ans);
+    border-radius: 14px;
+    padding: .5em 1.1em;
+    background: #f0fdf4;
+  }
+
+  /* SVG graph */
+  svg.graph { width: min(80vw, 560px); height: auto; }
+  .scene.active .draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 2s ease-in-out both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .axis { stroke: #1c1917; stroke-width: 2; }
+  .gridlabel { font: italic 19px Georgia, serif; fill: #57534e; }
+
+  /* paused = static view: everything visible, no animation */
+  body.paused .scene.active .rv { animation: none; opacity: 1; }
+  body.paused .scene.active .hl { animation: none; background-size: 100% 88%; }
+  body.paused .scene.active .draw { animation: none; stroke-dashoffset: 0; }
+
+  /* controls */
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 64px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    background: #fafaf9;
+    border-top: 1px solid #e7e5e4;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+  }
+  #bar button {
+    font: inherit; font-size: 17px;
+    border: 1px solid #d6d3d1; border-radius: 8px;
+    background: #fff; color: var(--ink);
+    padding: 7px 14px; cursor: pointer;
+  }
+  #bar button:hover { background: #f5f5f4; }
+  #dots { display: flex; gap: 8px; margin-left: auto; }
+  #dots .dot { width: 11px; height: 11px; border-radius: 50%; background: #d6d3d1; cursor: pointer; }
+  #dots .dot.on { background: var(--yp); }
+  #label { font-size: 13px; color: #78716c; min-width: 9.5em; }
+  #progress { position: fixed; top: 0; left: 0; height: 4px; width: 0%; background: var(--yp); transition: width .2s linear; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage">
+
+  <!-- ============ SCENE 1 — THE QUESTION ============ -->
+  <section class="scene" data-dur="9000">
+    <div class="step rv" style="--d:.1s">The question</div>
+    <div class="math big rv" style="--d:.5s">
+      Write the line tangent to&nbsp; <span class="c-x"><i>x</i><sup>2</sup></span> − <span class="c-y">3<i>xy</i></span> + <span class="c-y">4<i>y</i></span> = 8
+    </div>
+    <div class="math big rv" style="--d:1.4s">
+      through the point&nbsp; <span class="hl" style="--d:1.8s">(2, −2)</span>.
+    </div>
+    <div class="note rv" style="--d:2.8s">A tangent line needs two things: a point and a slope. We have the point — the slope is the derivative.</div>
+  </section>
+
+  <!-- ============ SCENE 2 — CHECK THE POINT ============ -->
+  <section class="scene" data-dur="11000">
+    <div class="step rv" style="--d:.1s">Step 1 — Check the point is on the curve</div>
+    <div class="math rv" style="--d:.6s">
+      <span class="c-x">(2)<sup>2</sup></span> − <span class="c-y">3(2)(−2)</span> + <span class="c-y">4(−2)</span>
+      = <span class="c-x">4</span> <span class="c-y">+ 12</span> <span class="c-y">− 8</span>
+      = <span class="hl" style="--d:1.6s">8</span> ✓
+    </div>
+    <div class="math big rv" style="--d:2.8s">
+      <span class="c-ans">Left side = 8 = right side</span> — the point is on the curve.
+    </div>
+    <div class="note rv" style="--d:4.2s">Always confirm this first — a tangent line only makes sense at a point on the curve.</div>
+  </section>
+
+  <!-- ============ SCENE 3 — DIFFERENTIATE IMPLICITLY ============ -->
+  <section class="scene dense" data-dur="15000">
+    <div class="step rv" style="--d:.1s">Step 2 — Differentiate implicitly</div>
+    <div class="trow rv" style="--d:.6s">
+      <span class="lhs c-x"><i>x</i><sup>2</sup></span> <span class="arrow">→</span> <span class="c-x">2<i>x</i></span>
+    </div>
+    <div class="trow rv" style="--d:1.6s">
+      <span class="lhs c-y">−3<i>xy</i></span> <span class="arrow">→</span>
+      <span class="c-bad"><span class="hl" style="--d:2.0s">product rule!</span></span>
+      &nbsp;<span class="c-y">−3<i>y</i></span> <span class="c-yp">− 3<i>x</i><i>y</i>′</span>
+    </div>
+    <div class="trow rv" style="--d:3.4s">
+      <span class="lhs c-y">4<i>y</i></span> <span class="arrow">→</span> <span class="c-yp">4<i>y</i>′</span>
+    </div>
+    <div class="trow rv" style="--d:4.4s">
+      <span class="lhs">8</span> <span class="arrow">→</span> <span>0</span>
+    </div>
+    <div class="math big rv" style="--d:5.6s">
+      <span class="c-x">2<i>x</i></span> <span class="c-y">− 3<i>y</i></span> <span class="c-yp">− 3<i>x</i><i>y</i>′</span> <span class="c-yp">+ 4<i>y</i>′</span> = 0
+    </div>
+    <div class="note rv" style="--d:7.0s">−3xy needs the product rule: −3[(x)′y + x·y′] = −3y − 3xy′.</div>
+  </section>
+
+  <!-- ============ SCENE 4 — SOLVE FOR y′ ============ -->
+  <section class="scene dense" data-dur="12000">
+    <div class="step rv" style="--d:.1s">Step 3 — Solve for <i>y</i>′</div>
+    <div class="math rv" style="--d:.6s">
+      <span class="c-x">2<i>x</i></span> <span class="c-y">− 3<i>y</i></span> <span class="c-yp"><span class="hl" style="--d:1.0s">− 3<i>x</i><i>y</i>′</span></span> <span class="c-yp"><span class="hl" style="--d:1.8s">+ 4<i>y</i>′</span></span> = 0
+    </div>
+    <div class="math rv" style="--d:3.0s">
+      gather the <span class="c-yp"><i>y</i>′</span> terms, move the rest right:
+    </div>
+    <div class="math big rv" style="--d:4.2s">
+      <span class="collect c-yp"><i>y</i>′(4 − 3<i>x</i>) = 3<i>y</i> − 2<i>x</i></span>
+    </div>
+    <div class="math big rv" style="--d:5.6s">
+      <span class="c-yp"><i>y</i>′ = <span class="frac"><span class="num">3<i>y</i> − 2<i>x</i></span><span class="den">4 − 3<i>x</i></span></span></span>
+    </div>
+  </section>
+
+  <!-- ============ SCENE 5 — SLOPE AT THE POINT ============ -->
+  <section class="scene dense" data-dur="12000">
+    <div class="step rv" style="--d:.1s">Step 4 — Slope at (2, −2)</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-yp"><i>y</i>′ = <span class="frac"><span class="num">3(−2) − 2(2)</span><span class="den">4 − 3(2)</span></span></span>
+      = <span class="hl" style="--d:1.6s"><span class="frac"><span class="num">−6 − 4</span><span class="den">4 − 6</span></span></span>
+      = <span class="frac"><span class="num">−10</span><span class="den">−2</span></span>
+      = <span class="hl" style="--d:3.0s"><span class="c-ans">5</span></span>
+    </div>
+    <div class="math rv" style="--d:4.2s">
+      the slope of the tangent line is <span class="c-ans">m = 5</span>.
+    </div>
+    <div class="note rv" style="--d:5.4s">Plug the point straight into the derivative — no need to solve for y first.</div>
+  </section>
+
+  <!-- ============ SCENE 6 — POINT-SLOPE + GRAPH ============ -->
+  <section class="scene dense" data-dur="14000">
+    <div class="step rv" style="--d:.1s">Step 5 — Point-slope form</div>
+    <div class="math rv" style="--d:.6s">
+      <i>y</i> − (−2) = 5(<i>x</i> − 2)&nbsp;&nbsp;⇒&nbsp;&nbsp;
+      <span class="hl" style="--d:1.4s"><i>y</i> + 2 = 5<i>x</i> − 10</span>
+    </div>
+    <div class="math big rv" style="--d:2.6s">
+      <span class="answer-box c-ans"><i>y</i> = 5<i>x</i> − 12</span>
+    </div>
+    <svg class="graph rv" style="--d:3.6s" viewBox="0 0 560 340">
+      <!-- x-axis (y = 0) -->
+      <line x1="40" y1="83" x2="530" y2="83" class="axis"/>
+      <text x="534" y="89" class="gridlabel">x</text>
+      <!-- the curve x² − 3xy + 4y = 8  (branch through (2, −2)) -->
+      <path d="M95,282 C115,245 145,205 201,169 C245,140 300,116 378,104 C425,97 460,91 485,87"
+            fill="none" stroke="#1d4ed8" stroke-width="4" pathLength="1" class="draw" style="--d:4.0s"/>
+      <!-- the tangent line y = 5x − 12 -->
+      <line x1="95" y1="233" x2="414" y2="40" stroke="#15803d" stroke-width="4" pathLength="1" class="draw" style="--d:6.0s"/>
+      <text x="420" y="42" fill="#15803d" style="font: italic bold 20px Georgia, serif; --d:7.6s" class="rv">y = 5x − 12</text>
+      <!-- the point (2, −2) -->
+      <circle cx="201" cy="169" r="8" fill="#c2410c" class="rv" style="--d:7.0s"/>
+      <text x="212" y="205" fill="#c2410c" style="font: italic bold 20px Georgia, serif; --d:7.2s" class="rv">(2, −2)</text>
+    </svg>
+    <div class="note rv" style="--d:8.4s">The green line just grazes the blue curve at (2, −2) — that's the tangent.</div>
+  </section>
+
+</div>
+
+<div id="bar">
+  <button id="prev" title="Previous scene (←)">⏮</button>
+  <button id="play" title="Play / pause (space)">⏸</button>
+  <button id="next" title="Next scene (→)">⏭</button>
+  <span id="label">1 / 6</span>
+  <div id="dots"></div>
+</div>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll(".scene")];
+  const durs   = scenes.map(s => +s.dataset.dur);
+  const dotsEl = document.getElementById("dots");
+  const label  = document.getElementById("label");
+  const prog   = document.getElementById("progress");
+  const playBtn= document.getElementById("play");
+
+  let cur = -1, playing = true, timer = null, t0 = 0, raf = null;
+
+  scenes.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.addEventListener("click", () => show(i, true));
+    dotsEl.appendChild(d);
+  });
+  const dots = [...dotsEl.children];
+
+  function show(i, keepPlay) {
+    clearTimeout(timer); cancelAnimationFrame(raf);
+    cur = (i + scenes.length) % scenes.length;
+    scenes.forEach((s, k) => {
+      s.classList.remove("active");
+      if (k === cur) { void s.offsetWidth; s.classList.add("active"); } // restart animations
+    });
+    dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+    label.textContent = (cur + 1) + " / " + scenes.length;
+    prog.style.width = "0%";
+    if (playing) arm(0);
+  }
+
+  function arm(startDelay) {
+    t0 = performance.now() - startDelay;
+    tick();
+    timer = setTimeout(() => show(cur + 1), durs[cur] - startDelay);
+  }
+  function tick() {
+    if (!playing) return;
+    const p = Math.min(1, (performance.now() - t0) / durs[cur]);
+    prog.style.width = (p * 100).toFixed(1) + "%";
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setPlaying(p) {
+    playing = p;
+    playBtn.textContent = p ? "⏸" : "▶";
+    document.body.classList.toggle("paused", !p);
+    if (p) { arm(performance.now() - t0); }
+    else   { clearTimeout(timer); cancelAnimationFrame(raf); }
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(cur + 1, true));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1, true));
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(cur + 1, true);
+    else if (e.key === "ArrowLeft") show(cur - 1, true);
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  const params = new URLSearchParams(location.search);
+  const start = Math.min(Math.max(parseInt(params.get("scene") || "1", 10) || 1, 1), scenes.length) - 1;
+  if (params.has("scene")) { setPlaying(false); show(start); } else { show(0); }
+})();
+</script>
+</body>
+</html>

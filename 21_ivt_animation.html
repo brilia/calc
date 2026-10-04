@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IVT — is there a c with f(c) = 0?</title>
+<style>
+  :root {
+    --f: #1d4ed8;        /* blue  — positive values / f */
+    --neg: #dc2626;      /* red   — negative values */
+    --ivt: #7c3aed;      /* purple — the theorem / justification */
+    --ans: #15803d;      /* green — conclusion */
+    --ink: #1c1917;
+    --hl: #fde047;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #stage { position: fixed; inset: 0 0 64px 0; }
+  .scene {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+    padding: 4vh 6vw;
+    text-align: center;
+  }
+  .scene.active { display: flex; }
+  .scene.dense { gap: .5em; }
+  .scene.dense .math { font-size: clamp(17px, 2.5vw, 29px); line-height: 1.35; }
+  .scene.dense .big { font-size: clamp(20px, 3vw, 36px); }
+
+  .scene .rv { opacity: 0; }
+  .scene.active .rv {
+    animation: rise .55s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .math { font-size: clamp(22px, 3.4vw, 40px); line-height: 1.5; }
+  .math i { font-style: italic; }
+  .big { font-size: clamp(26px, 4.2vw, 52px); }
+  .c-pos { color: var(--f); }
+  .c-neg { color: var(--neg); }
+  .c-ivt { color: var(--ivt); }
+  .c-ans { color: var(--ans); }
+
+  .hl {
+    background-image: linear-gradient(var(--hl), var(--hl));
+    background-repeat: no-repeat;
+    background-size: 0% 88%;
+    background-position: 0 60%;
+    border-radius: 4px;
+    padding: 0 .1em;
+  }
+  .scene.active .hl { animation: sweep .7s ease-out both; animation-delay: var(--d, 0s); }
+  @keyframes sweep { from { background-size: 0% 88%; } to { background-size: 100% 88%; } }
+
+  .step {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: clamp(15px, 1.8vw, 22px);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #78716c;
+  }
+  .note { font-size: clamp(14px, 1.6vw, 19px); color: #57534e; font-style: italic; }
+
+  /* data table */
+  .dtable {
+    border-collapse: collapse;
+    font-size: clamp(20px, 3vw, 34px);
+    line-height: 1.3;
+  }
+  .dtable th, .dtable td {
+    border: 2px solid var(--ink);
+    padding: .22em .65em;
+  }
+  .dtable th { font-weight: normal; border-right-width: 5px; }
+  .dtable th i { font-style: italic; }
+
+  /* interval rows (scene 3) */
+  .ivrow {
+    display: flex; align-items: center; gap: .5em;
+    font-size: clamp(19px, 2.8vw, 32px);
+  }
+  .badge {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: .8em; font-weight: bold;
+    padding: .05em .45em; border-radius: 8px;
+  }
+  .badge-yes { background: #dcfce7; color: var(--ans); }
+  .badge-no  { background: #fee2e2; color: var(--neg); }
+  .arrow { color: #78716c; }
+
+  /* SVG graph */
+  svg.graph { width: min(88vw, 640px); height: auto; }
+  .scene.active .draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 2.2s ease-in-out both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .axis { stroke: #1c1917; stroke-width: 2; }
+  .gridlabel { font: italic 20px Georgia, serif; fill: #57534e; }
+  .pt { stroke-width: 2; }
+
+  /* numbered justification (scene 5) */
+  .just {
+    display: flex; align-items: baseline; gap: .55em;
+    font-size: clamp(18px, 2.6vw, 30px);
+    text-align: left;
+  }
+  .just .n {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-weight: bold; color: #fff;
+    background: var(--ivt);
+    border-radius: 50%;
+    min-width: 1.5em; height: 1.5em;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .85em;
+    flex: none;
+    align-self: center;
+  }
+
+  .answer-box {
+    display: inline-block;
+    border: 3px solid var(--ans);
+    border-radius: 14px;
+    padding: .5em 1.1em;
+    background: #f0fdf4;
+  }
+
+  /* paused = static view: everything visible, no animation */
+  body.paused .scene.active .rv { animation: none; opacity: 1; }
+  body.paused .scene.active .hl { animation: none; background-size: 100% 88%; }
+  body.paused .scene.active .draw { animation: none; stroke-dashoffset: 0; }
+
+  /* controls */
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 64px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    background: #fafaf9;
+    border-top: 1px solid #e7e5e4;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+  }
+  #bar button {
+    font: inherit; font-size: 17px;
+    border: 1px solid #d6d3d1; border-radius: 8px;
+    background: #fff; color: var(--ink);
+    padding: 7px 14px; cursor: pointer;
+  }
+  #bar button:hover { background: #f5f5f4; }
+  #dots { display: flex; gap: 8px; margin-left: auto; }
+  #dots .dot { width: 11px; height: 11px; border-radius: 50%; background: #d6d3d1; cursor: pointer; }
+  #dots .dot.on { background: var(--ivt); }
+  #label { font-size: 13px; color: #78716c; min-width: 9.5em; }
+  #progress { position: fixed; top: 0; left: 0; height: 4px; width: 0%; background: var(--ivt); transition: width .2s linear; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage">
+
+  <!-- ============ SCENE 1 — THE QUESTION ============ -->
+  <section class="scene" data-dur="9000">
+    <div class="step rv" style="--d:.1s">The question</div>
+    <table class="dtable rv" style="--d:.5s">
+      <tr><th><i>x</i></th><td>1</td><td>2</td><td>5</td><td>7</td></tr>
+      <tr><th><i>f</i>(<i>x</i>)</th><td>2</td><td>8</td><td>2</td><td class="c-neg">−3</td></tr>
+    </table>
+    <div class="math rv" style="--d:1.6s">
+      <i>f</i> is <span class="hl" style="--d:2.0s">continuous</span>, with selected values above.
+      &nbsp;Is there a time <i>c</i>, 1 &lt; <i>c</i> &lt; 7, such that <i>f</i>(<i>c</i>) = 0?&nbsp; <b>Justify.</b>
+    </div>
+    <div class="note rv" style="--d:3.0s">We only know four points — but continuity lets us fill in everything between them.</div>
+  </section>
+
+  <!-- ============ SCENE 2 — THE TOOL: IVT ============ -->
+  <section class="scene" data-dur="11000">
+    <div class="step rv" style="--d:.1s">The tool — Intermediate Value Theorem</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-ivt">If <i>f</i> is continuous on [<i>a</i>, <i>b</i>]</span>
+    </div>
+    <div class="math big rv" style="--d:1.6s">
+      <span class="c-ivt">and <i>f</i>(<i>a</i>) and <i>f</i>(<i>b</i>) have <span class="hl" style="--d:2.0s">opposite signs</span> …</span>
+    </div>
+    <div class="math big rv" style="--d:3.0s">
+      <span class="c-ivt">… then there is a <i>c</i> in (<i>a</i>, <i>b</i>) with <span class="c-ans"><i>f</i>(<i>c</i>) = 0</span>.</span>
+    </div>
+    <div class="note rv" style="--d:4.2s">A continuous curve cannot jump over the x-axis — it must cross it.</div>
+  </section>
+
+  <!-- ============ SCENE 3 — HUNT FOR A SIGN CHANGE ============ -->
+  <section class="scene dense" data-dur="13000">
+    <div class="step rv" style="--d:.1s">Step 1 — Hunt for a sign change</div>
+    <div class="ivrow rv" style="--d:.7s">
+      <span class="badge badge-no">✗</span>
+      on (1, 2):&nbsp; <span class="c-pos">2</span> <span class="arrow">→</span> <span class="c-pos">8</span>&nbsp; both positive
+    </div>
+    <div class="ivrow rv" style="--d:1.9s">
+      <span class="badge badge-no">✗</span>
+      on (2, 5):&nbsp; <span class="c-pos">8</span> <span class="arrow">→</span> <span class="c-pos">2</span>&nbsp; both positive
+    </div>
+    <div class="ivrow rv" style="--d:3.1s">
+      <span class="badge badge-yes">✓</span>
+      on (5, 7):&nbsp; <span class="hl" style="--d:3.5s"><span class="c-pos">2</span> <span class="arrow">→</span> <span class="c-neg">−3</span></span>&nbsp;
+      <span class="hl" style="--d:4.2s">opposite signs!</span>
+    </div>
+    <div class="math rv" style="--d:5.4s">
+      <i>a</i> = 5,&nbsp; <i>b</i> = 7,&nbsp; <i>f</i>(5) = 2 &gt; 0,&nbsp; <i>f</i>(7) = −3 &lt; 0
+    </div>
+    <div class="note rv" style="--d:6.4s">Only one interval straddles zero — that's where the theorem applies.</div>
+  </section>
+
+  <!-- ============ SCENE 4 — PICTURE IT ============ -->
+  <section class="scene" data-dur="12000">
+    <div class="step rv" style="--d:.1s">Step 2 — Picture it</div>
+    <svg class="graph rv" style="--d:.5s" viewBox="0 0 680 440">
+      <!-- highlight band over [5,7] -->
+      <rect x="410" y="20" width="140" height="400" fill="#fde047" opacity="0.28" class="rv" style="--d:2.6s"/>
+      <!-- axes -->
+      <line x1="40" y1="300" x2="650" y2="300" class="axis"/>
+      <line x1="60" y1="20"  x2="60"  y2="420" class="axis"/>
+      <text x="655" y="306" class="gridlabel">x</text>
+      <text x="44"  y="20"  class="gridlabel">y</text>
+      <!-- known points -->
+      <circle cx="130" cy="244" r="7" fill="#1d4ed8" class="pt rv" style="--d:1.0s"/>
+      <circle cx="200" cy="76"  r="7" fill="#1d4ed8" class="pt rv" style="--d:1.2s"/>
+      <circle cx="410" cy="244" r="7" fill="#1d4ed8" class="pt rv" style="--d:1.4s"/>
+      <circle cx="550" cy="384" r="7" fill="#dc2626" class="pt rv" style="--d:1.6s"/>
+      <text x="118" y="272" class="gridlabel">(1, 2)</text>
+      <text x="188" y="60"  class="gridlabel">(2, 8)</text>
+      <text x="392" y="272" class="gridlabel">(5, 2)</text>
+      <text x="528" y="416" class="gridlabel">(7, −3)</text>
+      <!-- continuous curve through the points, crossing zero near x ≈ 6.3 -->
+      <path d="M130,244 C160,120 175,76 200,76 C260,76 330,244 410,244 C460,244 480,300 501,300 C520,330 535,360 550,384"
+            fill="none" stroke="#7c3aed" stroke-width="4" pathLength="1" class="draw" style="--d:2.0s"/>
+      <!-- the c crossing -->
+      <circle cx="501" cy="300" r="9" fill="none" stroke="#15803d" stroke-width="3" class="rv" style="--d:4.4s"/>
+      <text x="470" y="286" fill="#15803d" style="font: italic bold 22px Georgia, serif; --d:4.6s" class="rv">c</text>
+    </svg>
+    <div class="note rv" style="--d:5.4s">Any continuous path from (5, 2) to (7, −3) must cross the x-axis.</div>
+  </section>
+
+  <!-- ============ SCENE 5 — JUSTIFY (3 SENTENCES) ============ -->
+  <section class="scene dense" data-dur="14000">
+    <div class="step rv" style="--d:.1s">Step 3 — Justify (three sentences)</div>
+    <div class="just rv" style="--d:.6s">
+      <span class="n">1</span>
+      <span><i>f</i> is <span class="hl" style="--d:1.0s">continuous</span> — given.</span>
+    </div>
+    <div class="just rv" style="--d:2.0s">
+      <span class="n">2</span>
+      <span><i>f</i>(5) = <span class="c-pos">2 &gt; 0</span> and <i>f</i>(7) = <span class="c-neg">−3 &lt; 0</span> — <span class="hl" style="--d:2.4s">opposite signs</span> at the endpoints of [5, 7].</span>
+    </div>
+    <div class="just rv" style="--d:3.8s">
+      <span class="n">3</span>
+      <span class="c-ivt">By the IVT, there is a <i>c</i> in (5, 7) with <span class="c-ans"><i>f</i>(<i>c</i>) = 0</span>.</span>
+    </div>
+    <div class="note rv" style="--d:5.2s">Continuity → opposite signs → conclusion. All three, every time.</div>
+  </section>
+
+  <!-- ============ SCENE 6 — THE ANSWER ============ -->
+  <section class="scene" data-dur="9000">
+    <div class="step rv" style="--d:.1s">The answer</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="answer-box c-ans"><b>Yes</b> — by the IVT on (5, 7), there is a <i>c</i> with <i>f</i>(<i>c</i>) = 0.</span>
+    </div>
+    <div class="note rv" style="--d:2.0s">sign change&nbsp;→&nbsp;IVT&nbsp;→&nbsp;a root must exist</div>
+  </section>
+
+</div>
+
+<div id="bar">
+  <button id="prev" title="Previous scene (←)">⏮</button>
+  <button id="play" title="Play / pause (space)">⏸</button>
+  <button id="next" title="Next scene (→)">⏭</button>
+  <span id="label">1 / 6</span>
+  <div id="dots"></div>
+</div>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll(".scene")];
+  const durs   = scenes.map(s => +s.dataset.dur);
+  const dotsEl = document.getElementById("dots");
+  const label  = document.getElementById("label");
+  const prog   = document.getElementById("progress");
+  const playBtn= document.getElementById("play");
+
+  let cur = -1, playing = true, timer = null, t0 = 0, raf = null;
+
+  scenes.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.addEventListener("click", () => show(i, true));
+    dotsEl.appendChild(d);
+  });
+  const dots = [...dotsEl.children];
+
+  function show(i, keepPlay) {
+    clearTimeout(timer); cancelAnimationFrame(raf);
+    cur = (i + scenes.length) % scenes.length;
+    scenes.forEach((s, k) => {
+      s.classList.remove("active");
+      if (k === cur) { void s.offsetWidth; s.classList.add("active"); } // restart animations
+    });
+    dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+    label.textContent = (cur + 1) + " / " + scenes.length;
+    prog.style.width = "0%";
+    if (playing) arm(0);
+  }
+
+  function arm(startDelay) {
+    t0 = performance.now() - startDelay;
+    tick();
+    timer = setTimeout(() => show(cur + 1), durs[cur] - startDelay);
+  }
+  function tick() {
+    if (!playing) return;
+    const p = Math.min(1, (performance.now() - t0) / durs[cur]);
+    prog.style.width = (p * 100).toFixed(1) + "%";
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setPlaying(p) {
+    playing = p;
+    playBtn.textContent = p ? "⏸" : "▶";
+    document.body.classList.toggle("paused", !p);
+    if (p) { arm(performance.now() - t0); }
+    else   { clearTimeout(timer); cancelAnimationFrame(raf); }
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(cur + 1, true));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1, true));
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(cur + 1, true);
+    else if (e.key === "ArrowLeft") show(cur - 1, true);
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  const params = new URLSearchParams(location.search);
+  const start = Math.min(Math.max(parseInt(params.get("scene") || "1", 10) || 1, 1), scenes.length) - 1;
+  if (params.has("scene")) { setPlaying(false); show(start); } else { show(0); }
+})();
+</script>
+</body>
+</html>

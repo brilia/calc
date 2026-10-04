@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chain Rule with a Known Composition — find g′(0)</title>
+<style>
+  :root {
+    --f: #1d4ed8;        /* blue  — f / g */
+    --steep: #c2410c;    /* orange — the steep segment */
+    --rule: #7c3aed;     /* purple — the rule */
+    --ans: #15803d;      /* green — final answer */
+    --bad: #dc2626;      /* red — emphasis */
+    --ink: #1c1917;
+    --hl: #fde047;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #stage { position: fixed; inset: 0 0 64px 0; }
+  .scene {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+    padding: 4vh 6vw;
+    text-align: center;
+  }
+  .scene.active { display: flex; }
+  .scene.dense { gap: .5em; }
+  .scene.dense .math { font-size: clamp(17px, 2.5vw, 29px); line-height: 1.35; }
+  .scene.dense .big { font-size: clamp(20px, 3vw, 36px); }
+
+  .scene .rv { opacity: 0; }
+  .scene.active .rv {
+    animation: rise .55s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .math { font-size: clamp(22px, 3.4vw, 40px); line-height: 1.5; }
+  .math i { font-style: italic; }
+  .big { font-size: clamp(26px, 4.2vw, 52px); }
+  .c-f  { color: var(--f); }
+  .c-steep { color: var(--steep); }
+  .c-rule { color: var(--rule); }
+  .c-ans{ color: var(--ans); }
+  .c-bad{ color: var(--bad); }
+
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+    margin: 0 .12em;
+    line-height: 1.15;
+  }
+  .frac .num { border-bottom: 2px solid currentColor; padding: 0 .25em .05em; }
+  .frac .den { padding: .05em .25em 0; }
+  sup { font-size: .62em; }
+
+  .hl {
+    background-image: linear-gradient(var(--hl), var(--hl));
+    background-repeat: no-repeat;
+    background-size: 0% 88%;
+    background-position: 0 60%;
+    border-radius: 4px;
+    padding: 0 .1em;
+  }
+  .scene.active .hl { animation: sweep .7s ease-out both; animation-delay: var(--d, 0s); }
+  @keyframes sweep { from { background-size: 0% 88%; } to { background-size: 100% 88%; } }
+
+  .step {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: clamp(15px, 1.8vw, 22px);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #78716c;
+  }
+  .note { font-size: clamp(14px, 1.6vw, 19px); color: #57534e; font-style: italic; }
+
+  /* SVG graph */
+  svg.graph { width: min(72vw, 620px); height: auto; }
+  .axis { stroke: #1c1917; stroke-width: 1.6; }
+  .gridlabel { font: 15px Georgia, serif; fill: #57534e; }
+  .svglbl   { font: italic 22px Georgia, serif; }
+  .svglbl-b { font: italic bold 19px Georgia, serif; }
+  .scene.active .draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 1.8s ease-in-out both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* multiple-choice row */
+  .choices {
+    display: flex; gap: 2.2em; flex-wrap: wrap; justify-content: center;
+    font-size: clamp(19px, 2.6vw, 30px);
+  }
+  .choice { display: flex; align-items: center; gap: .4em; padding: .1em .3em; border-radius: 10px; }
+  .choice .letter { font-family: "Trebuchet MS", Verdana, sans-serif; color: #78716c; }
+  .choice.picked { background: #dcfce7; outline: 3px solid var(--ans); }
+  .choice.picked .letter { color: var(--ans); font-weight: bold; }
+  .choice.trap { opacity: .55; }
+
+  .answer-box {
+    display: inline-block;
+    border: 3px solid var(--ans);
+    border-radius: 14px;
+    padding: .5em 1.1em;
+    background: #f0fdf4;
+  }
+
+  /* paused = static view: everything visible, no animation */
+  body.paused .scene.active .rv { animation: none; opacity: 1; }
+  body.paused .scene.active .hl { animation: none; background-size: 100% 88%; }
+  body.paused .scene.active .draw { animation: none; stroke-dashoffset: 0; }
+
+  /* controls */
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 64px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    background: #fafaf9;
+    border-top: 1px solid #e7e5e4;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+  }
+  #bar button {
+    font: inherit; font-size: 17px;
+    border: 1px solid #d6d3d1; border-radius: 8px;
+    background: #fff; color: var(--ink);
+    padding: 7px 14px; cursor: pointer;
+  }
+  #bar button:hover { background: #f5f5f4; }
+  #dots { display: flex; gap: 8px; margin-left: auto; }
+  #dots .dot { width: 11px; height: 11px; border-radius: 50%; background: #d6d3d1; cursor: pointer; }
+  #dots .dot.on { background: var(--rule); }
+  #label { font-size: 13px; color: #78716c; min-width: 9.5em; }
+  #progress { position: fixed; top: 0; left: 0; height: 4px; width: 0%; background: var(--rule); transition: width .2s linear; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage">
+
+  <!-- ============ SCENE 1 — THE QUESTION ============ -->
+  <section class="scene dense" data-dur="14000">
+    <div class="step rv" style="--d:.1s">The question</div>
+    <svg class="graph rv" style="--d:.5s" viewBox="0 0 660 420">
+      <!-- axes -->
+      <line x1="60" y1="167.5" x2="640" y2="167.5" class="axis"/>
+      <line x1="195" y1="20" x2="195" y2="400" class="axis"/>
+      <!-- x labels -->
+      <text x="52"  y="188" class="gridlabel">−3</text>
+      <text x="188" y="188" class="gridlabel">0</text>
+      <text x="322" y="188" class="gridlabel">3</text>
+      <text x="412" y="188" class="gridlabel">5</text>
+      <text x="592" y="188" class="gridlabel">9</text>
+      <!-- y labels -->
+      <text x="170" y="46"  class="gridlabel">3</text>
+      <text x="170" y="172" class="gridlabel">0</text>
+      <text x="170" y="300" class="gridlabel">−3</text>
+      <text x="170" y="384" class="gridlabel">−5</text>
+      <!-- f(x) piecewise-linear -->
+      <polyline points="60,40 330,125 420,295 600,380" fill="none" stroke="#1d4ed8" stroke-width="3.5" pathLength="1" class="draw" style="--d:1.0s"/>
+      <text x="300" y="70" fill="#1d4ed8" class="svglbl rv" style="--d:2.6s">f(x)</text>
+    </svg>
+    <div class="math rv" style="--d:3.2s">
+      <i class="c-f">g</i>(0) = 3.1&nbsp; and&nbsp; <i class="c-f">f</i>(<i class="c-f">g</i>(<i>x</i>)) = arctan(1 − <i>x</i>).&nbsp; Find <i class="c-f">g</i>′(0).
+    </div>
+    <div class="choices rv" style="--d:4.4s">
+      <span class="choice"><span class="letter">(A)</span> −<span class="frac"><span class="num">3</span><span class="den">2</span></span></span>
+      <span class="choice"><span class="letter">(B)</span> −<span class="frac"><span class="num">1</span><span class="den">4</span></span></span>
+      <span class="choice"><span class="letter">(C)</span> <span class="frac"><span class="num">1</span><span class="den">4</span></span></span>
+      <span class="choice"><span class="letter">(D)</span> <span class="frac"><span class="num">3</span><span class="den">2</span></span></span>
+    </div>
+  </section>
+
+  <!-- ============ SCENE 2 — DIFFERENTIATE THE IDENTITY ============ -->
+  <section class="scene dense" data-dur="13000">
+    <div class="step rv" style="--d:.1s">Step 1 — Differentiate the identity</div>
+    <div class="math big rv" style="--d:.6s">
+      <i class="c-f">f</i>(<i class="c-f">g</i>(<i>x</i>)) = arctan(1 − <i>x</i>)
+    </div>
+    <div class="math big rv" style="--d:2.0s">
+      <span class="c-rule"><i class="c-f">f</i>′(<i class="c-f">g</i>(<i>x</i>)) · <i class="c-f">g</i>′(<i>x</i>)</span>
+      =
+      <span class="c-rule"><span class="frac"><span class="num">−1</span><span class="den">1 + (1 − <i>x</i>)<sup>2</sup></span></span></span>
+    </div>
+    <div class="note rv" style="--d:3.4s">Chain rule on the left; arctan's derivative (with the inner −1) on the right.</div>
+  </section>
+
+  <!-- ============ SCENE 3 — RIGHT SIDE AT x = 0 ============ -->
+  <section class="scene dense" data-dur="11000">
+    <div class="step rv" style="--d:.1s">Step 2 — Right side at <i>x</i> = 0</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-rule"><span class="frac"><span class="num">−1</span><span class="den">1 + (1 − 0)<sup>2</sup></span></span></span>
+      = <span class="c-rule"><span class="frac"><span class="num">−1</span><span class="den">1 + 1</span></span></span>
+      = <span class="hl" style="--d:1.8s"><span class="frac"><span class="num">−1</span><span class="den">2</span></span></span>
+    </div>
+    <div class="note rv" style="--d:3.0s">That's the whole right-hand side — no unknowns in it.</div>
+  </section>
+
+  <!-- ============ SCENE 4 — READ f′(3.1) FROM THE GRAPH ============ -->
+  <section class="scene dense" data-dur="16000">
+    <div class="step rv" style="--d:.1s">Step 3 — Read <i>f</i>′(3.1) from the graph</div>
+    <svg class="graph rv" style="--d:.5s" viewBox="0 0 660 420">
+      <line x1="60" y1="167.5" x2="640" y2="167.5" class="axis"/>
+      <line x1="195" y1="20" x2="195" y2="400" class="axis"/>
+      <text x="52"  y="188" class="gridlabel">−3</text>
+      <text x="188" y="188" class="gridlabel">0</text>
+      <text x="322" y="188" class="gridlabel">3</text>
+      <text x="412" y="188" class="gridlabel">5</text>
+      <text x="592" y="188" class="gridlabel">9</text>
+      <text x="170" y="46"  class="gridlabel">3</text>
+      <text x="170" y="172" class="gridlabel">0</text>
+      <text x="170" y="300" class="gridlabel">−3</text>
+      <text x="170" y="384" class="gridlabel">−5</text>
+      <!-- gentle segments -->
+      <polyline points="60,40 330,125" fill="none" stroke="#1d4ed8" stroke-width="3.5"/>
+      <polyline points="420,295 600,380" fill="none" stroke="#1d4ed8" stroke-width="3.5"/>
+      <!-- the steep segment, highlighted -->
+      <polyline points="330,125 420,295" fill="none" stroke="#c2410c" stroke-width="6" pathLength="1" class="draw" style="--d:1.2s"/>
+      <text x="430" y="250" fill="#c2410c" class="svglbl-b rv" style="--d:3.0s">(3, 1) → (5, −3)</text>
+      <!-- the point at x = 3.1 -->
+      <circle cx="334.5" cy="133.5" r="7" fill="#15803d" class="rv" style="--d:4.2s"/>
+      <text x="205" y="150" fill="#15803d" class="svglbl-b rv" style="--d:4.4s">x = 3.1</text>
+    </svg>
+    <div class="math rv" style="--d:5.2s">
+      <i class="c-f">g</i>(0) = 3.1 tells you <b>where</b> on <i>f</i>'s graph to look.
+    </div>
+    <div class="math big rv" style="--d:6.4s">
+      <span class="c-steep">slope = <span class="frac"><span class="num">−3 − 1</span><span class="den">5 − 3</span></span> = <span class="frac"><span class="num">−4</span><span class="den">2</span></span> = −2</span>
+      &nbsp;⇒&nbsp; <span class="hl" style="--d:7.6s"><i class="c-f">f</i>′(3.1) = −2</span>
+    </div>
+  </section>
+
+  <!-- ============ SCENE 5 — SOLVE FOR g′(0) ============ -->
+  <section class="scene dense" data-dur="12000">
+    <div class="step rv" style="--d:.1s">Step 4 — Solve for <i>g</i>′(0)</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-rule"><i class="c-f">f</i>′(3.1) · <i class="c-f">g</i>′(0) = <span class="frac"><span class="num">−1</span><span class="den">2</span></span></span>
+    </div>
+    <div class="math big rv" style="--d:2.0s">
+      <span class="c-rule">−2 · <i class="c-f">g</i>′(0) = <span class="frac"><span class="num">−1</span><span class="den">2</span></span></span>
+      &nbsp;⇒&nbsp;
+      <span class="hl" style="--d:3.2s"><i class="c-f">g</i>′(0) = <span class="frac"><span class="num c-ans">1</span><span class="den c-ans">4</span></span></span>
+    </div>
+    <div class="note rv" style="--d:4.4s">Divide both sides by −2 — the negatives cancel.</div>
+  </section>
+
+  <!-- ============ SCENE 6 — THE ANSWER ============ -->
+  <section class="scene" data-dur="10000">
+    <div class="step rv" style="--d:.1s">The answer</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="answer-box c-ans">(C)&nbsp; <i>g</i>′(0) = <span class="frac"><span class="num">1</span><span class="den">4</span></span></span>
+    </div>
+    <div class="choices rv" style="--d:1.8s">
+      <span class="choice"><span class="letter">(A)</span> −<span class="frac"><span class="num">3</span><span class="den">2</span></span></span>
+      <span class="choice"><span class="letter">(B)</span> −<span class="frac"><span class="num">1</span><span class="den">4</span></span></span>
+      <span class="choice picked"><span class="letter">(C)</span> <span class="frac"><span class="num">1</span><span class="den">4</span></span></span>
+      <span class="choice"><span class="letter">(D)</span> <span class="frac"><span class="num">3</span><span class="den">2</span></span></span>
+    </div>
+    <div class="note rv" style="--d:3.0s">differentiate the identity → substitute what you know → read the slope off the graph.</div>
+  </section>
+
+</div>
+
+<div id="bar">
+  <button id="prev" title="Previous scene (←)">⏮</button>
+  <button id="play" title="Play / pause (space)">⏸</button>
+  <button id="next" title="Next scene (→)">⏭</button>
+  <span id="label">1 / 6</span>
+  <div id="dots"></div>
+</div>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll(".scene")];
+  const durs   = scenes.map(s => +s.dataset.dur);
+  const dotsEl = document.getElementById("dots");
+  const label  = document.getElementById("label");
+  const prog   = document.getElementById("progress");
+  const playBtn= document.getElementById("play");
+
+  let cur = -1, playing = true, timer = null, t0 = 0, raf = null;
+
+  scenes.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.addEventListener("click", () => show(i, true));
+    dotsEl.appendChild(d);
+  });
+  const dots = [...dotsEl.children];
+
+  function show(i, keepPlay) {
+    clearTimeout(timer); cancelAnimationFrame(raf);
+    cur = (i + scenes.length) % scenes.length;
+    scenes.forEach((s, k) => {
+      s.classList.remove("active");
+      if (k === cur) { void s.offsetWidth; s.classList.add("active"); } // restart animations
+    });
+    dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+    label.textContent = (cur + 1) + " / " + scenes.length;
+    prog.style.width = "0%";
+    if (playing) arm(0);
+  }
+
+  function arm(startDelay) {
+    t0 = performance.now() - startDelay;
+    tick();
+    timer = setTimeout(() => show(cur + 1), durs[cur] - startDelay);
+  }
+  function tick() {
+    if (!playing) return;
+    const p = Math.min(1, (performance.now() - t0) / durs[cur]);
+    prog.style.width = (p * 100).toFixed(1) + "%";
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setPlaying(p) {
+    playing = p;
+    playBtn.textContent = p ? "⏸" : "▶";
+    document.body.classList.toggle("paused", !p);
+    if (p) { arm(performance.now() - t0); }
+    else   { clearTimeout(timer); cancelAnimationFrame(raf); }
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(cur + 1, true));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1, true));
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(cur + 1, true);
+    else if (e.key === "ArrowLeft") show(cur - 1, true);
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  const params = new URLSearchParams(location.search);
+  const start = Math.min(Math.max(parseInt(params.get("scene") || "1", 10) || 1, 1), scenes.length) - 1;
+  if (params.has("scene")) { setPlaying(false); show(start); } else { show(0); }
+})();
+</script>
+</body>
+</html>

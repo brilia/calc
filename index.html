@@ -1,1 +1,286 @@
-<html><body>&nbsp;</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculus Problem Set — Animated Solutions (20–35)</title>
+<style>
+  :root {
+    --ink: #1c1917;
+    --muted: #78716c;
+    --line: #e7e5e4;
+    --accent: #7c3aed;
+    --paper: #fafaf9;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 48px 24px 72px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 44px; }
+  header h1 {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: normal;
+    letter-spacing: -.01em;
+  }
+  header .sub {
+    margin-top: 12px;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: clamp(13px, 1.5vw, 16px);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  header .blurb {
+    margin: 18px auto 0;
+    max-width: 640px;
+    font-style: italic;
+    color: #57534e;
+    font-size: clamp(14px, 1.6vw, 17px);
+    line-height: 1.6;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  a.card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px 22px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  a.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 26px rgba(28,25,23,.09);
+    border-color: #d6d3d1;
+  }
+
+  .top { display: flex; align-items: center; gap: 12px; }
+  .num {
+    flex: none;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .title { font-size: 19px; line-height: 1.25; }
+  .chip {
+    margin-left: auto;
+    flex: none;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #f5f3ff;
+    color: var(--accent);
+  }
+  .chip.mc { background: #fef3c7; color: #b45309; }
+
+  .desc { font-style: italic; color: #57534e; font-size: 15px; line-height: 1.5; }
+
+  .formula {
+    font-size: 17px;
+    background: #fafaf9;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #292524;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .formula i { font-style: italic; }
+
+  .go {
+    margin-top: auto;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: 13px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+  footer .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: center; margin-bottom: 14px; }
+  footer .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  footer .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  footer code {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: 12.5px;
+    background: #f5f5f4;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 7px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Calculus Problem Set — Animated Solutions</h1>
+    <div class="sub">Problems 20 – 35 &nbsp;·&nbsp; Interactive HTML5</div>
+    <p class="blurb">
+      Each animation walks one problem from the question to the answer, scene by scene —
+      with color-coded steps, highlights, and graphs that paper can't draw.
+      Press <b>space</b> to pause, <b>←</b>/<b>→</b> to step through scenes.
+    </p>
+  </header>
+
+  <div class="grid">
+
+    <a class="card" href="20_chain_rule_animation.html">
+      <div class="top"><span class="num">20</span><span class="title">Chain Rule</span><span class="chip">Derivatives</span></div>
+      <div class="desc">Compose first, then differentiate outer × inner.</div>
+      <div class="formula"><i>g</i>(<i>f</i>(<i>x</i>)) = 3√(<i>x</i>² − 4) − 2 &nbsp;at&nbsp; <i>x</i> = 6</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="21_ivt_animation.html">
+      <div class="top"><span class="num">21</span><span class="title">Intermediate Value Theorem</span><span class="chip">Theorems</span></div>
+      <div class="desc">A sign change on (5, 7) forces a root — with a graph.</div>
+      <div class="formula"><i>f</i>(5) = 2 &gt; 0, <i>f</i>(7) = −3 &lt; 0 ⇒ ∃ <i>c</i>: <i>f</i>(<i>c</i>) = 0</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="22_quotient_rule_animation.html">
+      <div class="top"><span class="num">22</span><span class="title">Quotient Rule</span><span class="chip">Derivatives</span></div>
+      <div class="desc">low·d high − high·d low, over low².</div>
+      <div class="formula"><i>g</i>(<i>x</i>) = (5 − 2<i>x</i>) / (3<i>x</i> + 7)</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="23_limit_animation.html">
+      <div class="top"><span class="num">23</span><span class="title">Limits by Factoring</span><span class="chip">Limits</span></div>
+      <div class="desc">0/0 → factor, cancel, then substitute.</div>
+      <div class="formula">lim<sub><i>x</i>→−3</sub> (<i>x</i>² − 9) / (<i>x</i>² − 4<i>x</i> − 21)</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="24_implicit_animation.html">
+      <div class="top"><span class="num">24</span><span class="title">Implicit Differentiation</span><span class="chip">Implicit</span></div>
+      <div class="desc">Every y drags a y′ along — collect them all.</div>
+      <div class="formula">3<i>x</i>² − 2<i>y</i> + 4<i>xy</i> = 6</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="25_tangent_animation.html">
+      <div class="top"><span class="num">25</span><span class="title">Tangent Line</span><span class="chip">Implicit</span></div>
+      <div class="desc">A point and a slope — with the curve and tangent drawn.</div>
+      <div class="formula"><i>x</i>² − 3<i>xy</i> + 4<i>y</i> = 8 &nbsp;at&nbsp; (2, −2)</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="26_sine_implicit_animation.html">
+      <div class="top"><span class="num">26</span><span class="title">Implicit + Sine</span><span class="chip">Implicit</span></div>
+      <div class="desc">Keep the (2 − 3y′) factor — the chain rule's whole inner derivative.</div>
+      <div class="formula">sin(2<i>x</i> − 3<i>y</i>) = <i>x</i>² + 4<i>y</i>³</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="27_arctan_animation.html">
+      <div class="top"><span class="num">27</span><span class="title">arctan Derivative</span><span class="chip mc">Multiple Choice</span></div>
+      <div class="desc">u′/(1 + u²) — the chain rule built right in.</div>
+      <div class="formula"><i>y</i> = tan⁻¹(4<i>x</i>) &nbsp;at&nbsp; <i>x</i> = 1/2</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="28_arccos_animation.html">
+      <div class="top"><span class="num">28</span><span class="title">arccos from a Table</span><span class="chip mc">Multiple Choice</span></div>
+      <div class="desc">The minus sign is built into the formula — read f and f′ from the table.</div>
+      <div class="formula"><i>y</i> = cos⁻¹(<i>f</i>(<i>x</i>)) &nbsp;at&nbsp; <i>x</i> = 1/3</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="29_limit_def_animation.html">
+      <div class="top"><span class="num">29</span><span class="title">Limit Definition</span><span class="chip mc">Multiple Choice</span></div>
+      <div class="desc">Recognize f′(a) in disguise — no L'Hôpital needed.</div>
+      <div class="formula">lim<sub><i>h</i>→0</sub> [sin⁻¹(4/5 + <i>h</i>) − sin⁻¹(4/5)] / <i>h</i></div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="30_piecewise_animation.html">
+      <div class="top"><span class="num">30</span><span class="title">Piecewise Continuity</span><span class="chip mc">Multiple Choice</span></div>
+      <div class="desc">Two conditions, two unknowns: pieces must meet and slopes must match.</div>
+      <div class="formula"><i>g</i> continuous &amp; differentiable at <i>x</i> = 1/2</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="31_graph_chain_animation.html">
+      <div class="top"><span class="num">31</span><span class="title">Chain Rule + Graph</span><span class="chip mc">Multiple Choice</span></div>
+      <div class="desc">Differentiate the identity, then read f′(3.1) off the graph.</div>
+      <div class="formula"><i>f</i>(<i>g</i>(<i>x</i>)) = arctan(1 − <i>x</i>), <i>g</i>(0) = 3.1</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="32_second_deriv_animation.html">
+      <div class="top"><span class="num">32</span><span class="title">Second Derivative from a Table</span><span class="chip">Higher-Order</span></div>
+      <div class="desc">Differentiate twice, then read g″(0) straight from the table.</div>
+      <div class="formula"><i>h</i>(<i>x</i>) = 2 sin(<i>x</i>) − <i>g</i>(<i>x</i>) &nbsp;at&nbsp; <i>x</i> = 0</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="33_graph_second_deriv_animation.html">
+      <div class="top"><span class="num">33</span><span class="title">Second Derivative from Graphs</span><span class="chip">Higher-Order</span></div>
+      <div class="desc">y′ = fg′ is a product, so y″ = f′g′ + fg″ — four values from two graphs.</div>
+      <div class="formula"><i>dy</i>/<i>dx</i> = <i>f</i>(<i>x</i>)<i>g</i>′(<i>x</i>) &nbsp;at&nbsp; <i>x</i> = 2</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="34_fourth_deriv_animation.html">
+      <div class="top"><span class="num">34</span><span class="title">Fourth Derivative</span><span class="chip">Higher-Order</span></div>
+      <div class="desc">Power rule four times — the constant a rides along each time.</div>
+      <div class="formula"><i>f</i>(<i>x</i>) = <i>ax</i>⁴, <i>f</i>⁽⁴⁾(3) = 48</div>
+      <div class="go">Watch →</div>
+    </a>
+
+    <a class="card" href="35_third_deriv_animation.html">
+      <div class="top"><span class="num">35</span><span class="title">Third Derivative</span><span class="chip">Higher-Order</span></div>
+      <div class="desc">A quadratic dies after two differentiations — π is a distractor.</div>
+      <div class="formula"><i>g</i>(<i>x</i>) = <i>ax</i>² − <i>bx</i> + <i>c</i>, <i>g</i>‴(π)</div>
+      <div class="go">Watch →</div>
+    </a>
+
+  </div>
+
+  <footer>
+    <div class="legend">
+      <span><i class="swatch" style="background:#1d4ed8"></i> first function / x-terms</span>
+      <span><i class="swatch" style="background:#c2410c"></i> second function / y-terms</span>
+      <span><i class="swatch" style="background:#7c3aed"></i> the rule / y′ terms</span>
+      <span><i class="swatch" style="background:#15803d"></i> final answer</span>
+      <span><i class="swatch" style="background:#fde047"></i> look here</span>
+    </div>
+    <div>Every animation is a single self-contained HTML file — no internet, no dependencies.</div>
+    <div>Deep-link any scene with <code>?scene=4</code> &nbsp;·&nbsp; controls: <code>space</code> <code>←</code> <code>→</code></div>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Third Derivative — g(x) = ax² − bx + c, g‴(π)</title>
+<style>
+  :root {
+    --g: #1d4ed8;        /* blue  — the function */
+    --c: #c2410c;        /* orange — the constants a, b, c */
+    --rule: #7c3aed;     /* purple — the rule */
+    --ans: #15803d;      /* green — final answer */
+    --bad: #dc2626;      /* red — emphasis */
+    --ink: #1c1917;
+    --hl: #fde047;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #fff;
+    color: var(--ink);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #stage { position: fixed; inset: 0 0 64px 0; }
+  .scene {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+    padding: 4vh 6vw;
+    text-align: center;
+  }
+  .scene.active { display: flex; }
+  .scene.dense { gap: .5em; }
+  .scene.dense .math { font-size: clamp(17px, 2.5vw, 29px); line-height: 1.35; }
+  .scene.dense .big { font-size: clamp(20px, 3vw, 36px); }
+
+  .scene .rv { opacity: 0; }
+  .scene.active .rv {
+    animation: rise .55s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay: var(--d, 0s);
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .math { font-size: clamp(22px, 3.4vw, 40px); line-height: 1.5; }
+  .math i { font-style: italic; }
+  .big { font-size: clamp(26px, 4.2vw, 52px); }
+  .c-g  { color: var(--g); }
+  .c-c  { color: var(--c); }
+  .c-rule { color: var(--rule); }
+  .c-ans{ color: var(--ans); }
+  .c-bad{ color: var(--bad); }
+
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+    margin: 0 .12em;
+    line-height: 1.15;
+  }
+  .frac .num { border-bottom: 2px solid currentColor; padding: 0 .25em .05em; }
+  .frac .den { padding: .05em .25em 0; }
+  sup { font-size: .62em; }
+
+  .hl {
+    background-image: linear-gradient(var(--hl), var(--hl));
+    background-repeat: no-repeat;
+    background-size: 0% 88%;
+    background-position: 0 60%;
+    border-radius: 4px;
+    padding: 0 .1em;
+  }
+  .scene.active .hl { animation: sweep .7s ease-out both; animation-delay: var(--d, 0s); }
+  @keyframes sweep { from { background-size: 0% 88%; } to { background-size: 100% 88%; } }
+
+  .step {
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+    font-size: clamp(15px, 1.8vw, 22px);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #78716c;
+  }
+  .note { font-size: clamp(14px, 1.6vw, 19px); color: #57534e; font-style: italic; }
+
+  /* derivative cascade rows */
+  .cascade { display: flex; flex-direction: column; gap: .45em; align-items: flex-start; }
+  .crow { display: flex; align-items: baseline; gap: .7em; font-size: clamp(19px, 2.8vw, 32px); }
+  .crow .lbl { font-family: "Trebuchet MS", Verdana, sans-serif; font-size: .62em; color: #78716c; min-width: 3.2em; text-align: right; }
+
+  .answer-box {
+    display: inline-block;
+    border: 3px solid var(--ans);
+    border-radius: 14px;
+    padding: .5em 1.1em;
+    background: #f0fdf4;
+  }
+
+  /* paused = static view: everything visible, no animation */
+  body.paused .scene.active .rv { animation: none; opacity: 1; }
+  body.paused .scene.active .hl { animation: none; background-size: 100% 88%; }
+
+  /* controls */
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 64px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 18px;
+    background: #fafaf9;
+    border-top: 1px solid #e7e5e4;
+    font-family: "Trebuchet MS", Verdana, sans-serif;
+  }
+  #bar button {
+    font: inherit; font-size: 17px;
+    border: 1px solid #d6d3d1; border-radius: 8px;
+    background: #fff; color: var(--ink);
+    padding: 7px 14px; cursor: pointer;
+  }
+  #bar button:hover { background: #f5f5f4; }
+  #dots { display: flex; gap: 8px; margin-left: auto; }
+  #dots .dot { width: 11px; height: 11px; border-radius: 50%; background: #d6d3d1; cursor: pointer; }
+  #dots .dot.on { background: var(--rule); }
+  #label { font-size: 13px; color: #78716c; min-width: 9.5em; }
+  #progress { position: fixed; top: 0; left: 0; height: 4px; width: 0%; background: var(--rule); transition: width .2s linear; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage">
+
+  <!-- ============ SCENE 1 — THE QUESTION ============ -->
+  <section class="scene" data-dur="10000">
+    <div class="step rv" style="--d:.1s">The question</div>
+    <div class="math big rv" style="--d:.5s">
+      <i class="c-g">g</i>(<i>x</i>) = <span class="c-c"><i>a</i></span><i class="c-g">x</i><sup>2</sup> − <span class="c-c"><i>b</i></span><i class="c-g">x</i> + <span class="c-c"><i>c</i></span>,
+    </div>
+    <div class="math rv" style="--d:1.4s">
+      where <span class="c-c"><i>a</i></span>, <span class="c-c"><i>b</i></span>, and <span class="c-c"><i>c</i></span> are nonzero constants.
+    </div>
+    <div class="math big rv" style="--d:2.6s">
+      Find&nbsp; <i class="c-g">g</i>‴(<span class="hl" style="--d:3.0s">π</span>).
+    </div>
+    <div class="note rv" style="--d:4.2s">A quadratic — degree 2. Watch what happens as we differentiate.</div>
+  </section>
+
+  <!-- ============ SCENE 2 — FIRST DERIVATIVE ============ -->
+  <section class="scene" data-dur="11000">
+    <div class="step rv" style="--d:.1s">Step 1 — First derivative</div>
+    <div class="math big rv" style="--d:.6s">
+      <i class="c-g">g</i>(<i>x</i>) = <span class="c-c"><i>a</i></span><i class="c-g">x</i><sup>2</sup> − <span class="c-c"><i>b</i></span><i class="c-g">x</i> + <span class="c-c"><i>c</i></span>
+      &nbsp;⇒&nbsp;
+      <span class="c-rule"><i class="c-g">g</i>′(<i>x</i>) = <span class="hl" style="--d:1.4s">2<span class="c-c"><i>a</i></span><i class="c-g">x</i></span> − <span class="c-c"><i>b</i></span></span>
+    </div>
+    <div class="math rv" style="--d:2.6s">
+      power rule on each term; the constant <span class="c-c"><i>c</i></span> drops to 0.
+    </div>
+    <div class="note rv" style="--d:3.8s">Degree 2 → degree 1. Still has an x.</div>
+  </section>
+
+  <!-- ============ SCENE 3 — SECOND DERIVATIVE ============ -->
+  <section class="scene" data-dur="11000">
+    <div class="step rv" style="--d:.1s">Step 2 — Second derivative</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-rule"><i class="c-g">g</i>′(<i>x</i>) = 2<span class="c-c"><i>a</i></span><i class="c-g">x</i> − <span class="c-c"><i>b</i></span></span>
+      &nbsp;⇒&nbsp;
+      <span class="c-rule"><i class="c-g">g</i>″(<i>x</i>) = <span class="hl" style="--d:1.4s">2<span class="c-c"><i>a</i></span></span></span>
+    </div>
+    <div class="math rv" style="--d:2.6s">
+      the −<span class="c-c"><i>b</i></span> is a constant, so it differentiates to 0.
+    </div>
+    <div class="note rv" style="--d:3.8s">Degree 1 → degree 0. The x is gone — g″ is a constant.</div>
+  </section>
+
+  <!-- ============ SCENE 4 — THIRD DERIVATIVE ============ -->
+  <section class="scene dense" data-dur="13000">
+    <div class="step rv" style="--d:.1s">Step 3 — Third derivative</div>
+    <div class="cascade">
+      <div class="crow rv" style="--d:.6s">
+        <span class="lbl">g′</span>
+        <span class="c-rule">2<span class="c-c"><i>a</i></span><i class="c-g">x</i> − <span class="c-c"><i>b</i></span></span>
+      </div>
+      <div class="crow rv" style="--d:1.6s">
+        <span class="lbl">g″</span>
+        <span class="c-rule">2<span class="c-c"><i>a</i></span></span>
+      </div>
+      <div class="crow rv" style="--d:2.6s">
+        <span class="lbl">g‴</span>
+        <span class="c-rule"><span class="hl" style="--d:3.0s">0</span></span>
+      </div>
+    </div>
+    <div class="math rv" style="--d:4.2s">
+      <span class="c-bad">the derivative of a constant is 0</span> — so g‴ is <b>identically</b> zero.
+    </div>
+    <div class="note rv" style="--d:5.4s">A quadratic dies after two differentiations. Every derivative from here on is 0.</div>
+  </section>
+
+  <!-- ============ SCENE 5 — EVALUATE ============ -->
+  <section class="scene dense" data-dur="11000">
+    <div class="step rv" style="--d:.1s">Step 4 — Evaluate at <i>x</i> = π</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="c-rule"><i class="c-g">g</i>‴(<i>x</i>) = 0&nbsp; for every <i>x</i></span>
+      &nbsp;⇒&nbsp;
+      <span class="hl" style="--d:1.8s"><i class="c-g">g</i>‴(π) = <span class="c-ans">0</span></span>
+    </div>
+    <div class="math rv" style="--d:3.0s">
+      <span class="c-bad">π is a distractor</span> — plugging it in changes nothing.
+    </div>
+    <div class="note rv" style="--d:4.2s">When a derivative is identically zero, the input is irrelevant.</div>
+  </section>
+
+  <!-- ============ SCENE 6 — THE ANSWER ============ -->
+  <section class="scene" data-dur="9000">
+    <div class="step rv" style="--d:.1s">The answer</div>
+    <div class="math big rv" style="--d:.6s">
+      <span class="answer-box c-ans"><i>g</i>‴(π) = 0</span>
+    </div>
+    <div class="note rv" style="--d:2.0s">quadratic&nbsp;→&nbsp;two differentiations kill it&nbsp;→&nbsp;<i>g</i>‴ ≡ 0</div>
+  </section>
+
+</div>
+
+<div id="bar">
+  <button id="prev" title="Previous scene (←)">⏮</button>
+  <button id="play" title="Play / pause (space)">⏸</button>
+  <button id="next" title="Next scene (→)">⏭</button>
+  <span id="label">1 / 6</span>
+  <div id="dots"></div>
+</div>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll(".scene")];
+  const durs   = scenes.map(s => +s.dataset.dur);
+  const dotsEl = document.getElementById("dots");
+  const label  = document.getElementById("label");
+  const prog   = document.getElementById("progress");
+  const playBtn= document.getElementById("play");
+
+  let cur = -1, playing = true, timer = null, t0 = 0, raf = null;
+
+  scenes.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    d.addEventListener("click", () => show(i, true));
+    dotsEl.appendChild(d);
+  });
+  const dots = [...dotsEl.children];
+
+  function show(i, keepPlay) {
+    clearTimeout(timer); cancelAnimationFrame(raf);
+    cur = (i + scenes.length) % scenes.length;
+    scenes.forEach((s, k) => {
+      s.classList.remove("active");
+      if (k === cur) { void s.offsetWidth; s.classList.add("active"); } // restart animations
+    });
+    dots.forEach((d, k) => d.classList.toggle("on", k === cur));
+    label.textContent = (cur + 1) + " / " + scenes.length;
+    prog.style.width = "0%";
+    if (playing) arm(0);
+  }
+
+  function arm(startDelay) {
+    t0 = performance.now() - startDelay;
+    tick();
+    timer = setTimeout(() => show(cur + 1), durs[cur] - startDelay);
+  }
+  function tick() {
+    if (!playing) return;
+    const p = Math.min(1, (performance.now() - t0) / durs[cur]);
+    prog.style.width = (p * 100).toFixed(1) + "%";
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setPlaying(p) {
+    playing = p;
+    playBtn.textContent = p ? "⏸" : "▶";
+    document.body.classList.toggle("paused", !p);
+    if (p) { arm(performance.now() - t0); }
+    else   { clearTimeout(timer); cancelAnimationFrame(raf); }
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(cur + 1, true));
+  document.getElementById("prev").addEventListener("click", () => show(cur - 1, true));
+  playBtn.addEventListener("click", () => setPlaying(!playing));
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") show(cur + 1, true);
+    else if (e.key === "ArrowLeft") show(cur - 1, true);
+    else if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  });
+
+  const params = new URLSearchParams(location.search);
+  const start = Math.min(Math.max(parseInt(params.get("scene") || "1", 10) || 1, 1), scenes.length) - 1;
+  if (params.has("scene")) { setPlaying(false); show(start); } else { show(0); }
+})();
+</script>
+</body>
+</html>
